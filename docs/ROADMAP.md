@@ -36,3 +36,25 @@ than pure data scarcity. Reverting to baseline v1 as the reference model.
 Next: explore explainability (Grad-CAM equivalent for 1D signals) or
 architecture changes as the primary research angle, rather than further
 imbalance tuning.
+
+### Explainability: Grad-CAM for 1D ECG signals — 2026-06-21
+- Adapted Grad-CAM (originally for images) to work on 1D ECG time-series
+- Modified ECGNet.forward() to optionally return intermediate conv features
+- Implemented grad_cam_1d() in explain.py: computes per-timestep importance
+  by combining gradients and activations from the last conv block
+- Tested on 4 validation samples (NORM and MI cases)
+
+**Finding:** The model consistently focuses on QRS complexes (the sharp
+heartbeat spikes) rather than the flatter segments between beats. This
+matches clinical intuition, since QRS/ST-segment features are exactly
+where diagnostic signals like MI typically show up.
+
+**Secondary observation:** For NORM predictions, importance appears spread
+fairly evenly across most beats (consistent with judging overall rhythm
+regularity). For MI predictions, importance appears more concentrated on
+specific individual beats (consistent with localized abnormalities driving
+the diagnosis). This is a preliminary observation from a small sample,
+worth validating systematically (e.g. averaging importance patterns across
+many samples per class).
+
+Next: test whether this pattern holds for weaker-performing classes (CD, HYP).
