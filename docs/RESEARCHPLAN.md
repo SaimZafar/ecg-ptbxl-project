@@ -30,3 +30,22 @@ test macro-AUC 0.9204 ± 0.0016 (patient-disjoint, 3 seeds).
 
 ## Experiment log
 - (entries added per session)
+
+### Phase 1 result — domain shift to Chapman-Shaoxing (2026-06-21)
+Harmonized 19,621 Chapman records (SNOMED -> 5 superclasses; ~43% of 45,152
+mapped, rest are rhythm-only with no diagnostic-form equivalent).
+Ran the PTB-XL v1 model on Chapman WITHOUT retraining.
+
+| Class | PTB-XL | Chapman | drop | n |
+|-------|--------|---------|------|------|
+| NORM  | 0.944  | 0.924   | -0.020 | 6991 |
+| MI    | 0.924  | 0.885   | -0.039 | 123  |
+| STTC  | 0.933  | 0.839   | -0.094 | 10149|
+| CD    | 0.910  | 0.805   | -0.105 | 3185 |
+| HYP   | 0.901  | 0.930   | +0.029 | 769  |
+| **Macro** | **~0.920** | **0.876** | **-0.044** | |
+
+Finding: domain shift is real (~4.4 pts macro) and NON-uniform — STTC and CD
+(fine morphology) degrade most; NORM transfers well. MI (n=123) too sparse to
+trust. Caveat: drop conflates device/population shift with SCP-vs-SNOMED label
+definition differences. Motivates Phase 2 (normalization + augmentation).
