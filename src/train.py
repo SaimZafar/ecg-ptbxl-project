@@ -1,9 +1,19 @@
+import random
+import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
 
-from config import BATCH_SIZE, NUM_EPOCHS, LEARNING_RATE, RESULTS_DIR
+from config import BATCH_SIZE, NUM_EPOCHS, LEARNING_RATE, RESULTS_DIR, RANDOM_SEED
 from model import ECGNet
+
+
+def set_seed(seed):
+    """Make runs reproducible across random, numpy, and torch."""
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
 
 
 class ECGDataset(Dataset):
@@ -68,6 +78,7 @@ def compute_pos_weights(labels):
 
 
 def run_training(train_signals, train_labels, val_signals, val_labels):
+    set_seed(RANDOM_SEED)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
 
