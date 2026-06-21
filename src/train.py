@@ -73,9 +73,8 @@ def run_training(train_signals, train_labels, val_signals, val_labels):
     train_loader = DataLoader(train_ds, batch_size=BATCH_SIZE, shuffle=True)
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 
-    model = ECGNet().to(device)
-    pos_weights = compute_pos_weights(train_labels).to(device)
-    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weights)
+   model = ECGNet().to(device)
+    criterion = nn.BCEWithLogitsLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     best_val_loss = float("inf")
