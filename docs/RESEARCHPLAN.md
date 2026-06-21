@@ -63,3 +63,17 @@ normalization + augmentation did NOT recover the domain-shift gap, indicating
 the gap stems from deeper population + label-definition differences (SCP vs
 SNOMED), not superficial amplitude/noise variation. Negative result ->
 motivates Phase 3 (multi-source training: include Chapman in training).
+
+### Phase 3 result — multi-source training (PTB-XL + Chapman) (2026-06-21)
+Split Chapman 70/10/20; trained on PTB-XL-train + Chapman-train (31,176).
+
+| Eval | v1 (PTB-XL only) | v3 (multi-source) |
+|------|------|------|
+| PTB-XL test macro  | ~0.920 | 0.9161 |
+| Chapman test macro | 0.876  | 0.9345 |
+
+STTC (0.84->0.94) and CD (0.80->0.91) collapses fully recovered, confirming
+Phase 2 diagnosis: gap needed target-distribution exposure, not input tricks.
+Small in-domain cost (-0.006). CAVEAT: Chapman now in training -> this is
+multi-domain FITTING, not generalization to unseen source (MI n=22 = noise).
+True generalization claim requires a 3rd held-out dataset (Phase 3b capstone).
