@@ -58,3 +58,19 @@ worth validating systematically (e.g. averaging importance patterns across
 many samples per class).
 
 Next: test whether this pattern holds for weaker-performing classes (CD, HYP).
+
+### Explainability validation across all 5 classes — 2026-06-21
+- Tested Grad-CAM on CD and HYP samples (previously only tested NORM/MI)
+- QRS-focusing pattern holds across all 5 classes — confirms this is a
+  general property of the model, not specific to one class
+
+**Refined observation:** Attention "style" differs subtly by class:
+- CD: tight, sharp focus directly on QRS spike (consistent with CD being
+  about QRS shape/timing — e.g. bundle branch blocks)
+- HYP: slightly broader focus extending toward the T-wave region
+  (consistent with HYP often showing amplitude changes beyond just the
+  QRS spike)
+
+This is a preliminary pattern from single examples per class — would need
+averaging across many samples per class to confirm rigorously, but it's
+a promising thread for the explainability angle of the paper.
