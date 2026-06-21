@@ -1,3 +1,72 @@
+import torch
+import torch.nn as nn
+from torch.utils.data import Dataset, DataLoader
+
+from config import BATCH_SIZE, NUM_EPOCHS, LEARNING_RATE, RESULTS_DIR
+from model import ECGNet
+
+
+class ECGDataset(Dataset):
+    """Wraps signals + labels so PyTorch's DataLoader can batch them."""
+
+    def __init__(self, signals, labels):
+        self.signals = signals  # shape: (N, 1000, 12)
+        self.labels = labels    # shape: (N, 5)
+
+    def __len__(self):
+        return len(self.signals)
+
+    def __getitem__(self, idx):
+        signal = torch.tensor(self.signals[idx], dtype=torch.float32)
+        label = torch.tensor(self.labels[idx], dtype=torch.float32)
+        return signal, label
+
+
+def train_one_epoch(model, loader, optimizer, criterion, device):
+    model.train()
+    total_loss = 0.0
+
+    for signals, labels in loader:
+        signals, labels = signals.to(device), labels.to(device)
+
+        optimizer.zero_grad()
+        outputs = model(signals)
+        loss = criterion(outputs, labels)
+        loss.backward()
+        optimizer.step()
+
+        total_loss += loss.item()
+
+    return total_loss / len(loader)
+
+
+def validate(model, loader, criterion, device):
+    model.eval()
+    total_loss = 0.0
+
+    with torch.no_grad():
+        for signals, labels in loader:
+            signals, labels = signals.to(device), labels.to(device)
+            outputs = model(signals)
+            loss = criterion(outputs, labels)
+            total_loss += loss.item()
+
+    return total_loss / len(loader)
+
+
+def compute_pos_weights(labels):
+    """
+    Calculate per-class weights for imbalanced data.
+    Rare classes get a higher weight so mistakes on them cost more.
+    Currently unused in run_training (tested, did not improve results —
+    see docs/ROADMAP.md), kept here for reference.
+    """
+    pos_counts = labels.sum(axis=0)
+    neg_counts = len(labels) - pos_counts
+    weights = neg_counts / (pos_counts + 1e-6)
+    return torch.tensor(weights, dtype=torch.float32)
+
+
 def run_training(train_signals, train_labels, val_signals, val_labels):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Using device: {device}")
