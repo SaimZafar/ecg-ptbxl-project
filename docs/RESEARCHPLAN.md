@@ -95,3 +95,15 @@ Neither saw Georgia. 7,975 mapped Georgia records (MI n=7 excluded).
    are not enough for robust cross-hospital transfer.
 3. HYP AUC<0.5 = likely label-definition mismatch for hypertrophy; flagged, not claimed.
 Conclusion: robust generalization needs more diverse sources + dedicated DG methods.
+
+### Phase 3c ablation — AdaBN vs multi-source (Georgia, unseen)
+| Model | Georgia macro |
+|-------|------|
+| v2 PTB-XL only, original BN | 0.564 |
+| v2 PTB-XL only, + AdaBN     | 0.853 |
+| v3 multi-source, + AdaBN    | 0.872 |
+
+AdaBN is the dominant lever (+0.29; most of the gap is BN covariate shift,
+recoverable label-free). Multi-source adds a smaller consistent increment on
+top (+0.019, helps CD/STTC/NORM not HYP). They stack -> 0.87, near in-domain.
+Deployment: adapt BN on target hospital's unlabeled ECGs.
