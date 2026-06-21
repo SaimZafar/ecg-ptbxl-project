@@ -77,3 +77,21 @@ Phase 2 diagnosis: gap needed target-distribution exposure, not input tricks.
 Small in-domain cost (-0.006). CAVEAT: Chapman now in training -> this is
 multi-domain FITTING, not generalization to unseen source (MI n=22 = noise).
 True generalization claim requires a 3rd held-out dataset (Phase 3b capstone).
+
+### Phase 3b capstone — generalization to UNSEEN Georgia (2026-06-21)
+Identical norm+aug pipeline; only difference: v3 also trained on Chapman.
+Neither saw Georgia. 7,975 mapped Georgia records (MI n=7 excluded).
+
+| Class | v2 PTB-XL-only | v3 multi-source |
+|-------|------|------|
+| NORM  | 0.633 | 0.611 |
+| STTC  | 0.577 | 0.646 |
+| CD    | 0.791 | 0.773 |
+| HYP   | 0.254 | 0.342 |
+| Macro | 0.564 | 0.593 |
+
+1. Multi-source improves unseen-hospital generalization (+0.029 macro, STTC +0.07).
+2. But absolute generalization is POOR (~0.59 vs ~0.92 in-domain): two sources
+   are not enough for robust cross-hospital transfer.
+3. HYP AUC<0.5 = likely label-definition mismatch for hypertrophy; flagged, not claimed.
+Conclusion: robust generalization needs more diverse sources + dedicated DG methods.
