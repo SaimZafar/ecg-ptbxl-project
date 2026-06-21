@@ -49,3 +49,17 @@ Finding: domain shift is real (~4.4 pts macro) and NON-uniform — STTC and CD
 (fine morphology) degrade most; NORM transfers well. MI (n=123) too sparse to
 trust. Caveat: drop conflates device/population shift with SCP-vs-SNOMED label
 definition differences. Motivates Phase 2 (normalization + augmentation).
+### Phase 2 result — normalization + augmentation (2026-06-21)
+Retrained with per-lead z-score normalization + augmentation (noise, lead
+dropout, baseline wander, amplitude jitter).
+
+| Eval | v1 | v2 (norm+aug) |
+|------|------|------|
+| PTB-XL test macro | ~0.920 | 0.9222 |
+| Chapman macro     | 0.876  | 0.874 |
+
+Finding: in-domain preserved, but cross-dataset macro UNCHANGED. Per-signal
+normalization + augmentation did NOT recover the domain-shift gap, indicating
+the gap stems from deeper population + label-definition differences (SCP vs
+SNOMED), not superficial amplitude/noise variation. Negative result ->
+motivates Phase 3 (multi-source training: include Chapman in training).
