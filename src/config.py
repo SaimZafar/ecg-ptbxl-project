@@ -3,7 +3,7 @@ import os
 # --- Paths ---
 # On Kaggle, datasets live under /kaggle/input/. Locally, we'll point this
 # to wherever you download a small sample later.
-DATA_DIR = "/kaggle/input/ptbxl-dataset"  # placeholder, we'll fix this once you're on Kaggle
+DATA_DIR = "/kaggle/input/datasets/khyeh0719/ptb-xl-dataset/ptb-xl-a-large-publicly-available-electrocardiography-dataset-1.0.1"
 RESULTS_DIR = "results"
 
 # --- The 5 diagnostic superclasses we're predicting ---
