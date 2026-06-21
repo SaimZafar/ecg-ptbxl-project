@@ -74,3 +74,21 @@ Next: test whether this pattern holds for weaker-performing classes (CD, HYP).
 This is a preliminary pattern from single examples per class — would need
 averaging across many samples per class to confirm rigorously, but it's
 a promising thread for the explainability angle of the paper.
+
+### Final test-set evaluation (held-out fold 10) — 2026-06-21
+Reproducible seeded run (RANDOM_SEED=42). Best checkpoint by val loss,
+evaluated ONCE on the held-out test set (never used for tuning).
+
+**Test macro-AUC: 0.9223**
+
+| Class | Test AUC |
+|-------|----------|
+| NORM  | 0.9442 |
+| MI    | 0.9242 |
+| STTC  | 0.9327 |
+| CD    | 0.9099 |
+| HYP   | 0.9006 |
+
+Validation macro-AUC was 0.9231 — the val/test gap is <0.001, indicating
+the model generalizes well and is not overfit to the validation set.
+This is the headline number for the paper.
