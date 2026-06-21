@@ -53,6 +53,15 @@ def validate(model, loader, criterion, device):
 
     return total_loss / len(loader)
 
+def compute_pos_weights(labels):
+    """
+    Calculate per-class weights for imbalanced data.
+    Rare classes get a higher weight so mistakes on them cost more.
+    """
+    pos_counts = labels.sum(axis=0)
+    neg_counts = len(labels) - pos_counts
+    weights = neg_counts / (pos_counts + 1e-6)  # +1e-6 avoids divide-by-zero
+    return torch.tensor(weights, dtype=torch.float32)
 
 def run_training(train_signals, train_labels, val_signals, val_labels):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -65,7 +74,8 @@ def run_training(train_signals, train_labels, val_signals, val_labels):
     val_loader = DataLoader(val_ds, batch_size=BATCH_SIZE, shuffle=False)
 
     model = ECGNet().to(device)
-    criterion = nn.BCEWithLogitsLoss()
+    pos_weights = compute_pos_weights(train_labels).to(device)
+    criterion = nn.BCEWithLogitsLoss(pos_weight=pos_weights)
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     best_val_loss = float("inf")
