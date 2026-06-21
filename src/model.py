@@ -39,15 +39,19 @@ class ECGNet(nn.Module):
             nn.Linear(64, num_classes),
         )
 
-    def forward(self, x):
+    def forward(self, x, return_features=False):
         # x comes in as (batch, time, leads) — Conv1d wants (batch, leads, time)
         x = x.permute(0, 2, 1)
 
         x = self.conv_block1(x)
         x = self.conv_block2(x)
-        x = self.conv_block3(x)
+        features = self.conv_block3(x)  # shape: (batch, 128, time') — keep this, it's what Grad-CAM needs
 
-        x = self.global_pool(x)        # shape: (batch, 128, 1)
-        x = x.squeeze(-1)              # shape: (batch, 128)
+        x = self.global_pool(features)  # shape: (batch, 128, 1)
+        x = x.squeeze(-1)               # shape: (batch, 128)
 
-        return self.classifier(x)      # shape: (batch, num_classes) — raw scores, not probabilities yet
+        output = self.classifier(x)     # shape: (batch, num_classes)
+
+        if return_features:
+            return output, features
+        return output
