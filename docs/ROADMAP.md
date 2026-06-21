@@ -20,3 +20,19 @@
 
 Notes: HYP is the weakest class. Checking if this is due to class imbalance
 or genuine signal-detection difficulty before deciding next steps.
+
+### Experiment: Class weighting for HYP imbalance — 2026-06-21
+- Hypothesis: HYP underperforms (0.9019 AUC) due to being the rarest class
+  (12.2% of training data vs 22-44% for others)
+- Applied inverse-frequency pos_weight to BCEWithLogitsLoss
+- Result: macro-AUC dropped slightly (0.9264 -> 0.9233)
+- HYP AUC barely moved (0.9019 -> 0.9011)
+- MI and CD AUC slightly worsened (likely overcorrection on rare class
+  hurt the more common ones)
+
+**Conclusion:** Simple inverse-frequency weighting does not help. HYP's
+weakness appears to be more about genuine signal-detection difficulty
+than pure data scarcity. Reverting to baseline v1 as the reference model.
+Next: explore explainability (Grad-CAM equivalent for 1D signals) or
+architecture changes as the primary research angle, rather than further
+imbalance tuning.
