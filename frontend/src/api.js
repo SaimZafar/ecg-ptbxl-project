@@ -1,5 +1,4 @@
-const API = "http://127.0.0.1:8000";
-
+const API = import.meta.env.VITE_API_URL || "https://saim0112-ecg-scope-api.hf.space";
 export async function predictUpload(file) {
   const fd = new FormData();
   fd.append("file", file);
