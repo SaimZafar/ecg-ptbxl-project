@@ -26,9 +26,6 @@ It pairs a from-scratch deep learning pipeline with a deployed full-stack produc
 - Research: a cross-dataset generalization study across three public ECG databases.
 - Product: a React and FastAPI web app with authentication, file upload, and saved history.
 
-## Screenshots
-
-Add screenshots of the landing page and the analyze page here.
 
 ## Key results
 
