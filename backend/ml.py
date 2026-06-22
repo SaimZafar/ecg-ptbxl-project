@@ -1,7 +1,5 @@
-"""Self-contained ML core for serving: model architecture, weight loading,
-prediction, and Grad-CAM. The architecture here must match best_model.pt.
-"""
-import os
+"""ML core: architecture, model loading, prediction, Grad-CAM, batch AdaBN."""
+import os, copy
 import numpy as np
 import torch
 import torch.nn as nn
@@ -9,82 +7,73 @@ import torch.nn as nn
 CLASSES = ["NORM", "MI", "STTC", "CD", "HYP"]
 ASSETS_DIR = os.path.join(os.path.dirname(__file__), "assets")
 MODEL_PATH = os.path.join(ASSETS_DIR, "best_model.pt")
-DEVICE = torch.device("cpu")  # one signal at a time — CPU is plenty
-
+DEVICE = torch.device("cpu")
+DISCLAIMER = "Research/educational model — not for clinical use."
+NORMALIZE = True   # this model was trained on normalized signals
 
 class ECGNet(nn.Module):
     def __init__(self, num_leads=12, num_classes=len(CLASSES)):
         super().__init__()
-        self.conv_block1 = nn.Sequential(
-            nn.Conv1d(num_leads, 32, 7, padding=3), nn.BatchNorm1d(32),
-            nn.ReLU(), nn.MaxPool1d(2))
-        self.conv_block2 = nn.Sequential(
-            nn.Conv1d(32, 64, 5, padding=2), nn.BatchNorm1d(64),
-            nn.ReLU(), nn.MaxPool1d(2))
-        self.conv_block3 = nn.Sequential(
-            nn.Conv1d(64, 128, 3, padding=1), nn.BatchNorm1d(128),
-            nn.ReLU(), nn.MaxPool1d(2))
+        self.conv_block1 = nn.Sequential(nn.Conv1d(num_leads,32,7,padding=3), nn.BatchNorm1d(32), nn.ReLU(), nn.MaxPool1d(2))
+        self.conv_block2 = nn.Sequential(nn.Conv1d(32,64,5,padding=2), nn.BatchNorm1d(64), nn.ReLU(), nn.MaxPool1d(2))
+        self.conv_block3 = nn.Sequential(nn.Conv1d(64,128,3,padding=1), nn.BatchNorm1d(128), nn.ReLU(), nn.MaxPool1d(2))
         self.global_pool = nn.AdaptiveAvgPool1d(1)
-        self.classifier = nn.Sequential(
-            nn.Linear(128, 64), nn.ReLU(), nn.Dropout(0.3),
-            nn.Linear(64, num_classes))
-
+        self.classifier = nn.Sequential(nn.Linear(128,64), nn.ReLU(), nn.Dropout(0.3), nn.Linear(64,num_classes))
     def forward(self, x, return_features=False):
-        x = x.permute(0, 2, 1)
-        x = self.conv_block1(x)
-        x = self.conv_block2(x)
-        features = self.conv_block3(x)
-        x = self.global_pool(features).squeeze(-1)
-        output = self.classifier(x)
-        if return_features:
-            return output, features
-        return output
+        x = x.permute(0,2,1)
+        x = self.conv_block1(x); x = self.conv_block2(x); f = self.conv_block3(x)
+        out = self.classifier(self.global_pool(f).squeeze(-1))
+        return (out, f) if return_features else out
 
+def _prep(sig):
+    sig = np.asarray(sig, dtype=np.float32)
+    if NORMALIZE:
+        sig = (sig - sig.mean(0, keepdims=True)) / (sig.std(0, keepdims=True) + 1e-8)
+    return np.ascontiguousarray(sig, dtype=np.float32)
 
 _model = None
-
 def load_model():
-    """Load the trained model once, then cache it for all later requests."""
     global _model
     if _model is None:
         m = ECGNet().to(DEVICE)
-        state = torch.load(MODEL_PATH, map_location=DEVICE, weights_only=True)
-        m.load_state_dict(state)
-        m.eval()
-        _model = m
+        m.load_state_dict(torch.load(MODEL_PATH, map_location=DEVICE, weights_only=True))
+        m.eval(); _model = m
     return _model
 
+def _grad_cam(model, sig, class_idx):
+    x = torch.tensor(sig, dtype=torch.float32).unsqueeze(0)
+    out, f = model(x, return_features=True)
+    f.retain_grad(); model.zero_grad(); out[0, class_idx].backward()
+    w = f.grad[0].mean(1)
+    imp = torch.relu((w.unsqueeze(1) * f[0].detach()).sum(0)).numpy()
+    imp = np.interp(np.linspace(0, len(imp)-1, sig.shape[0]), np.arange(len(imp)), imp)
+    return (imp / imp.max()).tolist() if imp.max() > 0 else imp.tolist()
 
-def grad_cam_1d(model, signal, class_idx):
-    """Importance curve (0-1) per timestep for the chosen class."""
-    x = torch.tensor(signal, dtype=torch.float32).unsqueeze(0).to(DEVICE)
-    output, features = model(x, return_features=True)
-    features.retain_grad()
-    model.zero_grad()
-    output[0, class_idx].backward()
-    grads = features.grad[0]
-    acts = features[0].detach()
-    weights = grads.mean(dim=1)
-    importance = torch.relu((weights.unsqueeze(1) * acts).sum(dim=0)).cpu().numpy()
-    importance = np.interp(
-        np.linspace(0, len(importance) - 1, signal.shape[0]),
-        np.arange(len(importance)), importance)
-    if importance.max() > 0:
-        importance = importance / importance.max()
-    return importance
-
-
-def analyze(signal):
-    """Predict + explain one ECG. signal: numpy array (1000, 12)."""
-    model = load_model()
-    x = torch.tensor(signal, dtype=torch.float32).unsqueeze(0).to(DEVICE)
+def _predict_one(model, sig):
+    x = torch.tensor(sig, dtype=torch.float32).unsqueeze(0)
     with torch.no_grad():
-        probs = torch.sigmoid(model(x))[0].cpu().numpy()
+        probs = torch.sigmoid(model(x))[0].numpy()
     top = int(probs.argmax())
-    importance = grad_cam_1d(model, signal, top)
     return {
-        "probabilities": {CLASSES[i]: float(probs[i]) for i in range(len(CLASSES))},
+        "probabilities": {CLASSES[i]: round(float(probs[i]), 4) for i in range(len(CLASSES))},
         "predicted_class": CLASSES[top],
         "predicted_index": top,
-        "importance": importance.tolist(),
+        "importance": _grad_cam(model, sig, top),
+        "disclaimer": DISCLAIMER,
     }
+
+def analyze(sig):
+    return _predict_one(load_model(), _prep(sig))
+
+def analyze_batch(signals):
+    """Adapt BatchNorm stats to the user's batch (AdaBN), then predict each."""
+    m = copy.deepcopy(load_model())
+    for mod in m.modules():
+        if isinstance(mod, nn.BatchNorm1d):
+            mod.reset_running_stats(); mod.momentum = None
+    prepped = [_prep(s) for s in signals]
+    m.train()
+    with torch.no_grad():
+        m(torch.tensor(np.stack(prepped), dtype=torch.float32))
+    m.eval()
+    return [_predict_one(m, s) for s in prepped]

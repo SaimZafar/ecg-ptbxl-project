@@ -5,7 +5,7 @@ export default function Prediction({ result }) {
       <div className="verdict">
         <span className="verdict-label">Diagnosis</span>
         <span className="verdict-class">{result.predicted_class}</span>
-        <span className="verdict-true">actual: {result.true_label}</span>
+        {result.true_label && <span className="verdict-true">actual: {result.true_label}</span>}
       </div>
       <div className="bars">
         {entries.map(([cls, p]) => (
